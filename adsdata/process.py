@@ -191,38 +191,82 @@ class Processor:
                     new_datalinks.append(first)
             return new_datalinks
 
+    # def _convert_data_link(self, filetype, value):
+    #     """convert one data link row"""
+    #     file_properties = self.data_dict[filetype] #data_files[filetype]
+    #     d = {}
+    #     d['link_type'] = file_properties['extra_values']['link_type']
+    #     link_sub_type_suffix = ''
+    #     if value is dict and 'subparts' in value and 'item_count' in value['subparts']:
+    #         link_sub_type_suffix = ' ' + str(value['subparts']['item_count'])
+    #     if value is True:
+    #         d['link_sub_type'] = file_properties['extra_values']['link_sub_type'] + link_sub_type_suffix
+    #     elif 'link_sub_type' in value:
+    #         d['link_sub_type'] = value['link_sub_type'] + link_sub_type_suffix
+    #     elif 'link_sub_type' in file_properties['extra_values']:
+    #         d['link_sub_type'] = file_properties['extra_values']['link_sub_type'] + link_sub_type_suffix
+    #     if type(value) is bool:
+    #         d['url'] = ['']
+    #         d['title'] = ['']
+    #         d['item_count'] = 0
+    #     elif type(value) is dict:
+    #         d['url'] = value.get('url', [''])
+    #         if type(d['url']) is str:
+    #             d['url'] = [d['url']]
+    #         d['title'] = value.get('title', [''])
+    #         if type(d['title']) is str:
+    #             d['title'] = [d['title']]
+    #         # if d['title'] == ['']:
+    #         #    d.pop('title')  # to match old pipeline
+    #         d['item_count'] = value.get('item_count', 0)
+    #     else:
+    #         self.logger.error('serious error in process.convert_data_link: unexpected type for value, filetype = {}, value = {}, type of value = {}'.format(filetype, value, type(value)))
+    #     breakpoint() # {'link_type': 'ESOURCE', 'link_sub_type': 'ADS_PDF', 'url': ['http://articles.adsabs.harvard.edu/pdf/2003ASPC..295..361M'], 'title': [''], 'item_count': 0}
+    #     return d
+
     def _convert_data_link(self, filetype, value):
         """convert one data link row"""
-        file_properties = self.data_dict[filetype] #data_files[filetype]
-        d = {}
-        d['link_type'] = file_properties['extra_values']['link_type']
-        link_sub_type_suffix = ''
-        if value is dict and 'subparts' in value and 'item_count' in value['subparts']:
-            link_sub_type_suffix = ' ' + str(value['subparts']['item_count'])
-        if value is True:
-            d['link_sub_type'] = file_properties['extra_values']['link_sub_type'] + link_sub_type_suffix
-        elif 'link_sub_type' in value:
-            d['link_sub_type'] = value['link_sub_type'] + link_sub_type_suffix
-        elif 'link_sub_type' in file_properties['extra_values']:
-            d['link_sub_type'] = file_properties['extra_values']['link_sub_type'] + link_sub_type_suffix
-        if type(value) is bool:
-            d['url'] = ['']
-            d['title'] = ['']
-            d['item_count'] = 0
-        elif type(value) is dict:
-            d['url'] = value.get('url', [''])
-            if type(d['url']) is str:
-                d['url'] = [d['url']]
-            d['title'] = value.get('title', [''])
-            if type(d['title']) is str:
-                d['title'] = [d['title']]
-            # if d['title'] == ['']:
-            #    d.pop('title')  # to match old pipeline
-            d['item_count'] = value.get('item_count', 0)
-        else:
-            self.logger.error('serious error in process.convert_data_link: unexpected type for value, filetype = {}, value = {}, type of value = {}'.format(filetype, value, type(value)))
+        
+        file_properties = self.data_dict[filetype]
 
-        return d
+        link_type = file_properties['extra_values']['link_type']
+        link_sub_type = file_properties['extra_values'].get('link_sub_type', '')
+        link_sub_type_suffix = ''
+
+        if isinstance(value, dict) and 'subparts' in value:
+            link_sub_type_suffix = f" {value['subparts'].get('item_count', '')}".strip()
+        
+        # Determine the link sub type
+        if not link_sub_type and isinstance(value, dict) and 'link_sub_type' in value:
+            link_sub_type = value['link_sub_type']
+        
+        link_sub_type += link_sub_type_suffix
+        
+        # Initialize result dictionary
+        link_data =  { 'link_type': link_type, 
+                        'link_sub_type': link_sub_type,
+                        "url": [""],
+                        "title": [""],
+                        "item_count": 0
+                    }
+                
+
+        if isinstance(value, dict):
+            link_data['url'] = value.get('url', [''])
+            link_data['title'] = value.get('title', [''])
+            link_data['item_count'] = value.get('item_count', 0)
+            
+            if isinstance(link_data['url'], str):
+                link_data['url'] = [link_data['url']]
+            if isinstance(link_data['title'], str):
+                link_data['title'] = [link_data['title']]
+        
+        elif not isinstance(value, bool):
+            self.logger.error(
+                f"Serious error in process.convert_data_link: unexpected type for value, filetype = {filetype}, "
+                f"value = {value}, type of value = {type(value)}"
+            )
+        return link_data
 
     def _read_next_bibcode(self, bibcode):
         """read all the info for the passed bibcode into a dict"""

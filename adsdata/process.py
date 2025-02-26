@@ -19,6 +19,7 @@ class Processor:
             self.data_dict = data_files
         self.logger = tasks.app.logger
         self.readers = {}
+        self.nonbib_dict = self._get_nonbib_dict()
 
     def __enter__(self):
         self._open_all()
@@ -27,6 +28,30 @@ class Processor:
     def __exit__(self, exc_type, exc_value, traceback):
         self._close_all()
 
+    def _get_nonbib_dict(self): 
+        return {
+        "bibcode": '', # OK
+        "identifier": [""], # MP
+        "links": {
+            "ARXIV": [""], # MP
+            "DOI": [""], # MP
+            "DATA": {}, # OK
+            "ESOURCE": {}, # OK 
+            "ASSOCIATED": {},# OK 
+            "INSPIRE": {},# OK 
+            "LIBRARYCATALOG": {},# OK 
+            "PRESENTATION": {},# OK 
+            "ABSTRACT": False,
+            "CITATIONS": False, # OK
+            "GRAPHICS": False,
+            "METRICS": False,
+            "OPENURL": False, # MP
+            "REFERENCES": False, #OK
+            "TOC": False, # OK
+            "COREAD": False # MP
+            }
+        }
+    
     def process_bibcodes(self, bibcodes):
         """send nonbib and metrics records to master for the passed bibcodes
         for each bibcode
@@ -53,81 +78,161 @@ class Processor:
         if not self.compute_CC: tasks.task_output_nonbib.delay(nonbib_protos)
         tasks.task_output_metrics.delay(metrics_protos)
 
-    def _convert(self, passed):
-        """convert full nonbib dict to what is needed for nonbib protobuf
-        data links values are read from separate files so they are in separate dicts
-            they must be merged into one field for the protobuf
-        a couple fields are summarized
-        some other fields are just copied
-        some fields are deleted
-        """
-        return_value = {}
-        return_value['data_links_rows'] = []
-        return_value['property'] = set()
-        return_value['esource'] = set()
-        for filetype, value in passed.items():
-            file_properties = self.data_dict[filetype] #data_files[filetype]
-            if filetype == 'canonical':
-                return_value['bibcode'] = passed['canonical']
-            if (value is dict and dict and 'property' in value[filetype]):
-                return_value['property'].update(value[filetype]['property'])
-            if (type(file_properties['default_value']) is bool):
-                return_value[filetype] = value[filetype]
-                value = value[filetype]
-            if ('extra_values' in file_properties and 'link_type' in file_properties['extra_values'] and value != file_properties['default_value']):
-                # here with one or more real datalinks value(s)
-                # add each data links dict to existing list of dicts
-                # tweak some values (e.g., sub_link_type) in original dict
-                if type(value) is bool or type(value) is dict:
-                    d = self._convert_data_link(filetype, value)
-                    return_value['data_links_rows'].append(d)
-                elif type(value) is list:
-                    for v in value:
-                        d = self._convert_data_link(filetype, v)
-                        return_value['data_links_rows'].append(d)
-                else:
-                    self.logger.error('serious error in process._convert with {} {} {}'.format(filetype, type(value), value))
 
-                if file_properties['extra_values']['link_type'] == 'ESOURCE':
-                    return_value['esource'].add(file_properties['extra_values']['link_sub_type'])
-                return_value['property'].add(file_properties['extra_values']['link_type'])
-                return_value['property'].update(file_properties['extra_values'].get('property', []))
-            elif ('extra_values' in file_properties and value != file_properties['default_value']):
-                if 'property' in file_properties['extra_values']:
-                    return_value['property'].update(file_properties['extra_values']['property'])
+    # def _convert(self, passed:dict):
+    #     """convert full nonbib dict to what is needed for nonbib protobuf
+    #     data links values are read from separate files so they are in separate dicts
+    #         they must be merged into one field for the protobuf
+    #     a couple fields are summarized
+    #     some other fields are just copied
+    #     some fields are deleted
+    #     """
 
-            elif value != file_properties['default_value'] or file_properties.get('copy_default', False):
-                # otherwise, copy value
-                return_value[filetype] = passed[filetype]
-            if filetype == 'relevance':
-                for k in passed[filetype]:
-                    # simply add all dict value to top level
-                    return_value[k] = passed[filetype][k]
+        
+    #     self.nonbib_dict["bibcode"] = passed['canonical']
+    #     self.nonbib_dict["links"]["CITATIONS"] = len(passed['citation']) > 0
+    #     self.nonbib_dict["links"]["REFERENCES"] = len(passed['reference']) > 0
 
-        self._add_refereed_property(return_value)
-        self._add_article_property(return_value, passed)
-        return_value['property'] = sorted(return_value['property'])
-        return_value['esource'] = sorted(return_value['esource'])
-        self._add_data_summary(return_value)
-        return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
-        self._add_citation_count_fields(return_value, passed)
+    #     for filetype, value in passed.items():
+    #         file_properties = self.data_dict[filetype] #data_files[filetype]
+    
+    #         not_default_value = value != file_properties['default_value']
+    #         link_type = file_properties.get('extra_values', {}).get('link_type', '')
 
-        # time for computed fields
-        for k, v in computed_fields.items():
-            f = getattr(self, v['converter_function'], None)
-            if f is None:
-                self.logger.error('serious error in process._covert, expected converter_function {} for field {} not found'.format(v['converter_function'], k))
+    #         if ('extra_values' in file_properties and 'link_type' in file_properties['extra_values'] and value != file_properties['default_value']):
+    #             if filetype.upper() == 'TOC': 
+    #                 self.nonbib_dict['links']['TOC'] = True 
+    #             else:
+                    
+    #                 self._handle_data_link(filetype, value)
+        
+    #     breakpoint()
+
+           
+    #     self._add_article_property(return_value, passed)
+    #     return_value['esource'] = sorted(return_value['esource'])
+    #     self._add_data_summary(return_value)
+    #     return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
+    #     self._add_citation_count_fields(return_value, passed)
+
+    #     # time for computed fields
+    #     for k, v in computed_fields.items():
+    #         f = getattr(self, v['converter_function'], None)
+    #         if f is None:
+    #             self.logger.error('serious error in process._covert, expected converter_function {} for field {} not found'.format(v['converter_function'], k))
+    #         else:
+    #             x = f(return_value)
+    #             return_value.update(x)
+
+        
+        
+    #     return return_value
+
+
+    def _handle_data_link(self, filetype, value): 
+        result = []
+        if isinstance(value, dict): # ESOURCE, ASSOCIATED, LIBRARYCATALOG, PRESENTATION, INSPIRE
+            d = self._convert_data_link(filetype, value)
+            result.append(d)
+        elif isinstance(value, list): # DATA
+            for v in value:
+                d = self._convert_data_link(filetype, v)
+                result.append(d)
+        elif not isinstance(value, bool):
+            self.logger.error('serious error in process._convert with {} {} {}'.format(filetype, type(value), value))
+        
+        for d in result: 
+            link_type = d.get('link_type', '')
+            link_sub_type = d.get('link_sub_type', '')
+
+            del d['link_type']
+            del d['link_sub_type']
+            
+            #   {'link_type': 'ESOURCE', 'link_sub_type': 'ADS_PDF', 'url': ['http://articles.adsabs.harvard.edu/pdf/2003ASPC..295..361M'], 'title': [''], 'item_count': 0}
+            #   Not here anymore {'link_type': 'TOC', 'link_sub_type': 'NA', 'url': [''], 'title': [''], 'item_count': 0}
+            #   {'link_type': 'ASSOCIATED', 'link_sub_type': 'NA', 'url': ['2004MNRAS.354L..31M', '2005yCat..73549031M'], 'title': ['Source Paper', 'Catalog Description'], 'item_count': 0}
+            if link_type == 'ESOURCE' or link_type == 'DATA': 
+                self.nonbib_dict['links'][link_type].update({link_sub_type: d})
             else:
-                x = f(return_value)
-                return_value.update(x)
+                self.nonbib_dict['links'][link_type].update(d)
+       
+    
+    # def _convert(self, passed):
+    #     """convert full nonbib dict to what is needed for nonbib protobuf
+    #     data links values are read from separate files so they are in separate dicts
+    #         they must be merged into one field for the protobuf
+    #     a couple fields are summarized
+    #     some other fields are just copied
+    #     some fields are deleted
+    #     """
+    #     return_value = {'data_links_rows': [], 
+    #                     'property': set(), 
+    #                     "esource": set()}
+        
+    #     for filetype, value in passed.items():
+    #         file_properties = self.data_dict[filetype] #data_files[filetype]
+    #         if filetype == 'canonical':
+    #             return_value['bibcode'] = passed['canonical']
+    #         if (value is dict and dict and 'property' in value[filetype]):
+    #             return_value['property'].update(value[filetype]['property'])
+    #         if (type(file_properties['default_value']) is bool):
+    #             return_value[filetype] = value[filetype]
+    #             value = value[filetype]
+    #         if ('extra_values' in file_properties and 'link_type' in file_properties['extra_values'] and value != file_properties['default_value']):
+    #             # here with one or more real datalinks value(s)
+    #             # add each data links dict to existing list of dicts
+    #             # tweak some values (e.g., sub_link_type) in original dict
 
-        # finally, delete the keys not in the nonbib protobuf
-        not_needed = ['author', 'canonical', 'citation', 'deleted', 'deprecated_citation_count', 'doi', 'download', 'item_count', 'nonarticle',
-                      'ocrabstract', 'preprint', 'private', 'pub_openaccess', 'pub2arxiv',
-                      'reads', 'refereed', 'relevance', 'toc']
-        for n in not_needed:
-            return_value.pop(n, None)
-        return return_value
+    #             if type(value) is bool or type(value) is dict:
+    #                 d = self._convert_data_link(filetype, value)
+    #                 return_value['data_links_rows'].append(d)
+    #             elif type(value) is list:
+    #                 for v in value:
+    #                     d = self._convert_data_link(filetype, v)
+    #                     return_value['data_links_rows'].append(d)
+    #             else:
+    #                 self.logger.error('serious error in process._convert with {} {} {}'.format(filetype, type(value), value))
+
+    #             if file_properties['extra_values']['link_type'] == 'ESOURCE':
+    #                 return_value['esource'].add(file_properties['extra_values']['link_sub_type'])
+    #             return_value['property'].add(file_properties['extra_values']['link_type'])
+    #             return_value['property'].update(file_properties['extra_values'].get('property', []))
+    #         elif ('extra_values' in file_properties and value != file_properties['default_value']):
+    #             if 'property' in file_properties['extra_values']:
+    #                 return_value['property'].update(file_properties['extra_values']['property'])
+
+    #         elif value != file_properties['default_value'] or file_properties.get('copy_default', False):
+    #             # otherwise, copy value
+    #             return_value[filetype] = passed[filetype]
+    #         if filetype == 'relevance':
+    #             for k in passed[filetype]:
+    #                 # simply add all dict value to top level
+    #                 return_value[k] = passed[filetype][k]
+
+    #     self._add_refereed_property(return_value)
+    #     self._add_article_property(return_value, passed)
+    #     return_value['property'] = sorted(return_value['property'])
+    #     return_value['esource'] = sorted(return_value['esource'])
+    #     self._add_data_summary(return_value)
+    #     return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
+    #     self._add_citation_count_fields(return_value, passed)
+
+    #     # time for computed fields
+    #     for k, v in computed_fields.items():
+    #         f = getattr(self, v['converter_function'], None)
+    #         if f is None:
+    #             self.logger.error('serious error in process._covert, expected converter_function {} for field {} not found'.format(v['converter_function'], k))
+    #         else:
+    #             x = f(return_value)
+    #             return_value.update(x)
+
+    #     # finally, delete the keys not in the nonbib protobuf
+    #     not_needed = ['author', 'canonical', 'citation', 'deleted', 'deprecated_citation_count', 'doi', 'download', 'item_count', 'nonarticle',
+    #                   'ocrabstract', 'preprint', 'private', 'pub_openaccess', 'pub2arxiv',
+    #                   'reads', 'refereed', 'relevance', 'toc']
+    #     for n in not_needed:
+    #         return_value.pop(n, None)
+    #     return return_value
 
     def _add_citation_count_fields(self, return_value, original):
         author_count = len(original.get('author', ()))
@@ -224,6 +329,7 @@ class Processor:
     #     breakpoint() # {'link_type': 'ESOURCE', 'link_sub_type': 'ADS_PDF', 'url': ['http://articles.adsabs.harvard.edu/pdf/2003ASPC..295..361M'], 'title': [''], 'item_count': 0}
     #     return d
 
+    #TODO: remove 'TOC' from here
     def _convert_data_link(self, filetype, value):
         """convert one data link row"""
         
@@ -250,7 +356,6 @@ class Processor:
                         "item_count": 0
                     }
                 
-
         if isinstance(value, dict):
             link_data['url'] = value.get('url', [''])
             link_data['title'] = value.get('title', [''])

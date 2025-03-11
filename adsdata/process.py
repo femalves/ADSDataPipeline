@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from collections import defaultdict
 
@@ -19,7 +18,8 @@ class Processor:
             self.data_dict = data_files
         self.logger = tasks.app.logger
         self.readers = {}
-        self.nonbib_dict = self._get_nonbib_dict()
+        self.new_protobuf_template = self._get_nonbib_dict()
+        
 
     def __enter__(self):
         self._open_all()
@@ -28,30 +28,47 @@ class Processor:
     def __exit__(self, exc_type, exc_value, traceback):
         self._close_all()
 
-    def _get_nonbib_dict(self): 
+    def _get_nonbib_dict(self):
+        # Template for the new protobuf structure
         return {
-        "bibcode": '', # OK
-        "identifier": [""], # MP
-        "links": {
-            "ARXIV": [""], # MP
-            "DOI": [""], # MP
-            "DATA": {}, # OK
-            "ESOURCE": {}, # OK 
-            "ASSOCIATED": {},# OK 
-            "INSPIRE": {},# OK 
-            "LIBRARYCATALOG": {},# OK 
-            "PRESENTATION": {},# OK 
-            "ABSTRACT": False,
-            "CITATIONS": False, # OK
-            "GRAPHICS": False,
-            "METRICS": False,
-            "OPENURL": False, # MP
-            "REFERENCES": False, #OK
-            "TOC": False, # OK
-            "COREAD": False # MP
+            "identifier": [], #MP
+            "links": {
+                "ARXIV": [], #MP
+                "DOI": [],#MP
+                "DATA": {},
+                "ESOURCE": {},
+                "ASSOCIATED": {
+                    "url": [],
+                    "title": [],
+                    "count": 0
+                },
+                "INSPIRE": {
+                    "url": [],
+                    "title": [],
+                    "count": 0
+                },
+                "LIBRARYCATALOG": {
+                    "url": [],
+                    "title": [],
+                    "count": 0
+                },
+                "PRESENTATION": {
+                    "url": [],
+                    "title": [],
+                    "count": 0
+                },
+                "ABSTRACT": False, #MP
+                "CITATIONS": False,
+                "GRAPHICS": False,#MP
+                "METRICS": False, #MP
+                "OPENURL": False, #MP
+                "REFERENCES": False,
+                "TOC": False,
+                "COREAD": False #MP
             }
         }
-    
+
+        
     def process_bibcodes(self, bibcodes):
         """send nonbib and metrics records to master for the passed bibcodes
         for each bibcode
@@ -78,165 +95,127 @@ class Processor:
         if not self.compute_CC: tasks.task_output_nonbib.delay(nonbib_protos)
         tasks.task_output_metrics.delay(metrics_protos)
 
-
-    # def _convert(self, passed:dict):
-    #     """convert full nonbib dict to what is needed for nonbib protobuf
-    #     data links values are read from separate files so they are in separate dicts
-    #         they must be merged into one field for the protobuf
-    #     a couple fields are summarized
-    #     some other fields are just copied
-    #     some fields are deleted
-    #     """
-
-        
-    #     self.nonbib_dict["bibcode"] = passed['canonical']
-    #     self.nonbib_dict["links"]["CITATIONS"] = len(passed['citation']) > 0
-    #     self.nonbib_dict["links"]["REFERENCES"] = len(passed['reference']) > 0
-
-    #     for filetype, value in passed.items():
-    #         file_properties = self.data_dict[filetype] #data_files[filetype]
     
-    #         not_default_value = value != file_properties['default_value']
-    #         link_type = file_properties.get('extra_values', {}).get('link_type', '')
-
-    #         if ('extra_values' in file_properties and 'link_type' in file_properties['extra_values'] and value != file_properties['default_value']):
-    #             if filetype.upper() == 'TOC': 
-    #                 self.nonbib_dict['links']['TOC'] = True 
-    #             else:
-                    
-    #                 self._handle_data_link(filetype, value)
+    def _convert(self, passed):
+        """Convert full nonbib dict to what is needed for nonbib protobuf.
         
-    #     breakpoint()
-
-           
-    #     self._add_article_property(return_value, passed)
-    #     return_value['esource'] = sorted(return_value['esource'])
-    #     self._add_data_summary(return_value)
-    #     return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
-    #     self._add_citation_count_fields(return_value, passed)
-
-    #     # time for computed fields
-    #     for k, v in computed_fields.items():
-    #         f = getattr(self, v['converter_function'], None)
-    #         if f is None:
-    #             self.logger.error('serious error in process._covert, expected converter_function {} for field {} not found'.format(v['converter_function'], k))
-    #         else:
-    #             x = f(return_value)
-    #             return_value.update(x)
-
+        Data links values are read from separate files and merged into one field.
+        The method handles:
+        - Data link processing and merging
+        - Property aggregation
+        - Field summarization and copying
+        - Computed field generation
+        - Cleanup of unused fields
         
-        
-    #     return return_value
-
-
-    def _handle_data_link(self, filetype, value): 
-        result = []
-        if isinstance(value, dict): # ESOURCE, ASSOCIATED, LIBRARYCATALOG, PRESENTATION, INSPIRE
-            d = self._convert_data_link(filetype, value)
-            result.append(d)
-        elif isinstance(value, list): # DATA
-            for v in value:
-                d = self._convert_data_link(filetype, v)
-                result.append(d)
-        elif not isinstance(value, bool):
-            self.logger.error('serious error in process._convert with {} {} {}'.format(filetype, type(value), value))
-        
-        for d in result: 
-            link_type = d.get('link_type', '')
-            link_sub_type = d.get('link_sub_type', '')
-
-            del d['link_type']
-            del d['link_sub_type']
+        Args:
+            passed (dict): Raw data dictionary containing all input fields
             
-            #   {'link_type': 'ESOURCE', 'link_sub_type': 'ADS_PDF', 'url': ['http://articles.adsabs.harvard.edu/pdf/2003ASPC..295..361M'], 'title': [''], 'item_count': 0}
-            #   Not here anymore {'link_type': 'TOC', 'link_sub_type': 'NA', 'url': [''], 'title': [''], 'item_count': 0}
-            #   {'link_type': 'ASSOCIATED', 'link_sub_type': 'NA', 'url': ['2004MNRAS.354L..31M', '2005yCat..73549031M'], 'title': ['Source Paper', 'Catalog Description'], 'item_count': 0}
-            if link_type == 'ESOURCE' or link_type == 'DATA': 
-                self.nonbib_dict['links'][link_type].update({link_sub_type: d})
-            else:
-                self.nonbib_dict['links'][link_type].update(d)
-       
-    
-    # def _convert(self, passed):
-    #     """convert full nonbib dict to what is needed for nonbib protobuf
-    #     data links values are read from separate files so they are in separate dicts
-    #         they must be merged into one field for the protobuf
-    #     a couple fields are summarized
-    #     some other fields are just copied
-    #     some fields are deleted
-    #     """
-    #     return_value = {'data_links_rows': [], 
-    #                     'property': set(), 
-    #                     "esource": set()}
+        Returns:
+            dict: Processed data ready for nonbib protobuf
+        """
+        # Initialize return structure
+        return_value = {
+            "data_links_rows": [], 
+            "property": set(), 
+            "esource": set()
+        }
+          
+        for filetype, value in passed.items():
+            file_properties = self.data_dict[filetype]
+            default_value = file_properties.get('default_value')
+            extra_values = file_properties.get('extra_values', {})
+          
+            # Handle special cases first
+            if filetype == 'canonical':
+                return_value['bibcode'] = passed['canonical']
+                continue
+            
+            if filetype == 'relevance':
+                return_value.update(passed[filetype])
+                continue
         
-    #     for filetype, value in passed.items():
-    #         file_properties = self.data_dict[filetype] #data_files[filetype]
-    #         if filetype == 'canonical':
-    #             return_value['bibcode'] = passed['canonical']
-    #         if (value is dict and dict and 'property' in value[filetype]):
-    #             return_value['property'].update(value[filetype]['property'])
-    #         if (type(file_properties['default_value']) is bool):
-    #             return_value[filetype] = value[filetype]
-    #             value = value[filetype]
-    #         if ('extra_values' in file_properties and 'link_type' in file_properties['extra_values'] and value != file_properties['default_value']):
-    #             # here with one or more real datalinks value(s)
-    #             # add each data links dict to existing list of dicts
-    #             # tweak some values (e.g., sub_link_type) in original dict
+            # Handle boolean fields and TOC
+            if isinstance(default_value, bool):
+                if filetype == 'toc':
+                    self.new_protobuf_template['links']['TOC'] = value[filetype]
+                
+                return_value[filetype] = value[filetype]
+                value = value[filetype]
+            
+            # Process data links
+            if 'link_type' in extra_values and value != default_value:
+                # Convert and add data links
+                if isinstance(value, (bool, dict)):
+                    return_value['data_links_rows'].append(
+                        self._convert_data_link(filetype, value))
+                elif isinstance(value, list):
+                    return_value['data_links_rows'].extend(
+                        self._convert_data_link(filetype, v) for v in value)
+                else:
+                    self.logger.error(
+                        f'serious error in process._convert with {filetype} {type(value)} {value}')
+                    continue
+                
+                # Update esource and properties
+                link_type = extra_values['link_type']
+                if link_type == 'ESOURCE':
+                    return_value['esource'].add(extra_values['link_sub_type'])
+                return_value['property'].add(link_type)
+                return_value['property'].update(extra_values.get('property', []))
+            
+            # Handle properties
+            elif extra_values and value != default_value:
+                if 'property' in extra_values:
+                    return_value['property'].update(extra_values['property'])
+            
+            # Copy remaining fields if needed
+            elif value != default_value or file_properties.get('copy_default', False):
+                return_value[filetype] = passed[filetype]
+        
+        # Add computed properties
+        self._add_refereed_property(return_value)
+        self._add_article_property(return_value, passed)
+        self._add_data_summary(return_value)
+        self._add_citation_count_fields(return_value, passed)
+        
+        # Sort sets
+        return_value['property'] = sorted(return_value['property'])
+        return_value['esource'] = sorted(return_value['esource'])
+        
+        # Merge and process data links
+        return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
+        
+        # Populate the new protobuf structure with link data
+        self._populate_new_links_structure(return_value['data_links_rows'])
+        
+        # Populate the boolean flags
+        self._populate_link_flags(passed)
+        
+        # Add computed fields
+        for field_name, field_config in computed_fields.items():
+            converter = getattr(self, field_config['converter_function'], None)
+            if converter:
+                return_value.update(converter(return_value))
+            else:
+                self.logger.error(
+                    f'serious error in process._convert, expected converter_function '
+                    f'{field_config["converter_function"]} for field {field_name} not found')
+        
+        # Remove unused fields
+        unused_fields = {
+            'author', 'canonical', 'citation', 'deleted', 'deprecated_citation_count',
+            'doi', 'download', 'item_count', 'nonarticle', 'ocrabstract', 'preprint',
+            'private', 'pub_openaccess', 'pub2arxiv', 'reads', 'refereed',
+            'relevance', 'toc'
+        }
+        for field in unused_fields:
+            return_value.pop(field, None)
+        
+        return return_value
 
-    #             if type(value) is bool or type(value) is dict:
-    #                 d = self._convert_data_link(filetype, value)
-    #                 return_value['data_links_rows'].append(d)
-    #             elif type(value) is list:
-    #                 for v in value:
-    #                     d = self._convert_data_link(filetype, v)
-    #                     return_value['data_links_rows'].append(d)
-    #             else:
-    #                 self.logger.error('serious error in process._convert with {} {} {}'.format(filetype, type(value), value))
-
-    #             if file_properties['extra_values']['link_type'] == 'ESOURCE':
-    #                 return_value['esource'].add(file_properties['extra_values']['link_sub_type'])
-    #             return_value['property'].add(file_properties['extra_values']['link_type'])
-    #             return_value['property'].update(file_properties['extra_values'].get('property', []))
-    #         elif ('extra_values' in file_properties and value != file_properties['default_value']):
-    #             if 'property' in file_properties['extra_values']:
-    #                 return_value['property'].update(file_properties['extra_values']['property'])
-
-    #         elif value != file_properties['default_value'] or file_properties.get('copy_default', False):
-    #             # otherwise, copy value
-    #             return_value[filetype] = passed[filetype]
-    #         if filetype == 'relevance':
-    #             for k in passed[filetype]:
-    #                 # simply add all dict value to top level
-    #                 return_value[k] = passed[filetype][k]
-
-    #     self._add_refereed_property(return_value)
-    #     self._add_article_property(return_value, passed)
-    #     return_value['property'] = sorted(return_value['property'])
-    #     return_value['esource'] = sorted(return_value['esource'])
-    #     self._add_data_summary(return_value)
-    #     return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
-    #     self._add_citation_count_fields(return_value, passed)
-
-    #     # time for computed fields
-    #     for k, v in computed_fields.items():
-    #         f = getattr(self, v['converter_function'], None)
-    #         if f is None:
-    #             self.logger.error('serious error in process._covert, expected converter_function {} for field {} not found'.format(v['converter_function'], k))
-    #         else:
-    #             x = f(return_value)
-    #             return_value.update(x)
-
-    #     # finally, delete the keys not in the nonbib protobuf
-    #     not_needed = ['author', 'canonical', 'citation', 'deleted', 'deprecated_citation_count', 'doi', 'download', 'item_count', 'nonarticle',
-    #                   'ocrabstract', 'preprint', 'private', 'pub_openaccess', 'pub2arxiv',
-    #                   'reads', 'refereed', 'relevance', 'toc']
-    #     for n in not_needed:
-    #         return_value.pop(n, None)
-    #     return return_value
-
-    def _add_citation_count_fields(self, return_value, original):
-        author_count = len(original.get('author', ()))
-        citation_count = len(return_value.get('citation', ()))
+    def _add_citation_count_fields(self, return_value, passed):
+        author_count = len(passed.get('author', ()))
+        citation_count = len(passed.get('citation', ()))
         return_value['citation_count'] = citation_count
         return_value['citation_count_norm'] = citation_count / float(max(author_count, 1))
 
@@ -244,11 +223,11 @@ class Processor:
         if'REFEREED' not in return_value['property']:
             return_value['property'].add('NOT REFEREED')
 
-    def _add_article_property(self, return_value, d):
-        x = d.get('nonarticle', False)
-        if type(x) is dict:
-            x = x['nonarticle']
-        if x:
+    def _add_article_property(self, return_value, passed):
+        nonarticle_value = passed.get('nonarticle', False)
+        if isinstance(nonarticle_value, dict):
+            nonarticle_value = nonarticle_value['nonarticle']
+        if nonarticle_value:
             return_value['property'].add('NONARTICLE')
         else:
             return_value['property'].add('ARTICLE')
@@ -296,40 +275,6 @@ class Processor:
                     new_datalinks.append(first)
             return new_datalinks
 
-    # def _convert_data_link(self, filetype, value):
-    #     """convert one data link row"""
-    #     file_properties = self.data_dict[filetype] #data_files[filetype]
-    #     d = {}
-    #     d['link_type'] = file_properties['extra_values']['link_type']
-    #     link_sub_type_suffix = ''
-    #     if value is dict and 'subparts' in value and 'item_count' in value['subparts']:
-    #         link_sub_type_suffix = ' ' + str(value['subparts']['item_count'])
-    #     if value is True:
-    #         d['link_sub_type'] = file_properties['extra_values']['link_sub_type'] + link_sub_type_suffix
-    #     elif 'link_sub_type' in value:
-    #         d['link_sub_type'] = value['link_sub_type'] + link_sub_type_suffix
-    #     elif 'link_sub_type' in file_properties['extra_values']:
-    #         d['link_sub_type'] = file_properties['extra_values']['link_sub_type'] + link_sub_type_suffix
-    #     if type(value) is bool:
-    #         d['url'] = ['']
-    #         d['title'] = ['']
-    #         d['item_count'] = 0
-    #     elif type(value) is dict:
-    #         d['url'] = value.get('url', [''])
-    #         if type(d['url']) is str:
-    #             d['url'] = [d['url']]
-    #         d['title'] = value.get('title', [''])
-    #         if type(d['title']) is str:
-    #             d['title'] = [d['title']]
-    #         # if d['title'] == ['']:
-    #         #    d.pop('title')  # to match old pipeline
-    #         d['item_count'] = value.get('item_count', 0)
-    #     else:
-    #         self.logger.error('serious error in process.convert_data_link: unexpected type for value, filetype = {}, value = {}, type of value = {}'.format(filetype, value, type(value)))
-    #     breakpoint() # {'link_type': 'ESOURCE', 'link_sub_type': 'ADS_PDF', 'url': ['http://articles.adsabs.harvard.edu/pdf/2003ASPC..295..361M'], 'title': [''], 'item_count': 0}
-    #     return d
-
-    #TODO: remove 'TOC' from here
     def _convert_data_link(self, filetype, value):
         """convert one data link row"""
         
@@ -346,10 +291,11 @@ class Processor:
         if not link_sub_type and isinstance(value, dict) and 'link_sub_type' in value:
             link_sub_type = value['link_sub_type']
         
+
         link_sub_type += link_sub_type_suffix
         
         # Initialize result dictionary
-        link_data =  { 'link_type': link_type, 
+        link_data =  {  'link_type': link_type, 
                         'link_sub_type': link_sub_type,
                         "url": [""],
                         "title": [""],
@@ -467,3 +413,54 @@ class Processor:
             return {}
         bibgroup_facet = sorted(list(set(bibgroup)))
         return {'bibgroup_facet': bibgroup_facet}
+
+    def _populate_new_links_structure(self, data_links_rows):
+        """Populate the new protobuf links structure from data_links_rows.
+        Maps the flat data_links_rows into the hierarchical links structure."""
+        
+        # Map for link types that need special handling
+        link_type_mapping = {
+            'DATA': 'DATA',
+            'ESOURCE': 'ESOURCE',
+            'ASSOCIATED': 'ASSOCIATED',
+            'INSPIRE': 'INSPIRE',
+            'LIBRARYCATALOG': 'LIBRARYCATALOG',
+            'PRESENTATION': 'PRESENTATION'
+        }
+        
+        for row in data_links_rows:
+            link_type = row['link_type']
+            
+            # Skip if not in our mapping
+            if link_type not in link_type_mapping:
+                continue
+                
+            mapped_type = link_type_mapping[link_type]
+            
+            # Handle DATA and ESOURCE which have sub_type structure
+            if mapped_type in ('DATA', 'ESOURCE'):
+                sub_type = row['link_sub_type']
+                if sub_type not in self.new_protobuf_template['links'][mapped_type]:
+                    self.new_protobuf_template['links'][mapped_type][sub_type] = {
+                        'url': [],
+                        'title': [],
+                        'count': 0
+                    }
+                self.new_protobuf_template['links'][mapped_type][sub_type]['url'].extend(row['url'])
+                self.new_protobuf_template['links'][mapped_type][sub_type]['title'].extend(row['title'])
+                self.new_protobuf_template['links'][mapped_type][sub_type]['count'] = row['item_count']
+            
+            # Handle other link types with direct structure
+            else:
+                self.new_protobuf_template['links'][mapped_type]['url'].extend(row['url'])
+                self.new_protobuf_template['links'][mapped_type]['title'].extend(row['title'])
+                self.new_protobuf_template['links'][mapped_type]['count'] = row['item_count']
+        
+
+    def _populate_link_flags(self, passed):
+        """Populate the boolean flags in the new protobuf links structure.
+        Sets CITATIONS, REFERENCES, and TOC based on data availability."""
+    
+        self.new_protobuf_template['links']['CITATIONS'] = len(passed.get('citation', [])) > 0
+        self.new_protobuf_template['links']['REFERENCES'] = len(passed.get('reference', [])) > 0
+        

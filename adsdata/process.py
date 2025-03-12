@@ -210,6 +210,8 @@ class Processor:
         }
         for field in unused_fields:
             return_value.pop(field, None)
+            
+        return_value.update(self.new_protobuf_template)
         
         return return_value
 

@@ -18,7 +18,7 @@ class Processor:
             self.data_dict = data_files
         self.logger = tasks.app.logger
         self.readers = {}
-        self.new_protobuf_template = self._get_nonbib_dict()
+        self.master_protobuf = self._get_master_nonbib_dict()
         
 
     def __enter__(self):
@@ -28,7 +28,7 @@ class Processor:
     def __exit__(self, exc_type, exc_value, traceback):
         self._close_all()
 
-    def _get_nonbib_dict(self):
+    def _get_master_nonbib_dict(self):
         # Template for the new protobuf structure
         return {
             "identifier": [], #MP
@@ -57,10 +57,10 @@ class Processor:
                     "title": [],
                     "count": 0
                 },
-                "ABSTRACT": False, #MP
+                "ABSTRACT": False,#MP 
                 "CITATIONS": False,
                 "GRAPHICS": False,#MP
-                "METRICS": False, #MP
+                "METRICS": False,
                 "OPENURL": False, #MP
                 "REFERENCES": False,
                 "TOC": False,
@@ -137,7 +137,7 @@ class Processor:
             # Handle boolean fields and TOC
             if isinstance(default_value, bool):
                 if filetype == 'toc':
-                    self.new_protobuf_template['links']['TOC'] = value[filetype]
+                    self.master_protobuf['links']['TOC'] = value[filetype]
                 
                 return_value[filetype] = value[filetype]
                 value = value[filetype]
@@ -440,27 +440,28 @@ class Processor:
             # Handle DATA and ESOURCE which have sub_type structure
             if mapped_type in ('DATA', 'ESOURCE'):
                 sub_type = row['link_sub_type']
-                if sub_type not in self.new_protobuf_template['links'][mapped_type]:
-                    self.new_protobuf_template['links'][mapped_type][sub_type] = {
+                if sub_type not in self.master_protobuf['links'][mapped_type]:
+                    self.master_protobuf['links'][mapped_type][sub_type] = {
                         'url': [],
                         'title': [],
                         'count': 0
                     }
-                self.new_protobuf_template['links'][mapped_type][sub_type]['url'].extend(row['url'])
-                self.new_protobuf_template['links'][mapped_type][sub_type]['title'].extend(row['title'])
-                self.new_protobuf_template['links'][mapped_type][sub_type]['count'] = row['item_count']
+                self.master_protobuf['links'][mapped_type][sub_type]['url'].extend(row['url'])
+                self.master_protobuf['links'][mapped_type][sub_type]['title'].extend(row['title'])
+                self.master_protobuf['links'][mapped_type][sub_type]['count'] = row['item_count']
             
             # Handle other link types with direct structure
             else:
-                self.new_protobuf_template['links'][mapped_type]['url'].extend(row['url'])
-                self.new_protobuf_template['links'][mapped_type]['title'].extend(row['title'])
-                self.new_protobuf_template['links'][mapped_type]['count'] = row['item_count']
+                self.master_protobuf['links'][mapped_type]['url'].extend(row['url'])
+                self.master_protobuf['links'][mapped_type]['title'].extend(row['title'])
+                self.master_protobuf['links'][mapped_type]['count'] = row['item_count']
         
 
     def _populate_link_flags(self, passed):
         """Populate the boolean flags in the new protobuf links structure.
-        Sets CITATIONS, REFERENCES, and TOC based on data availability."""
+        Sets CITATIONS, REFERENCES, and METRICS based on data availability."""
     
-        self.new_protobuf_template['links']['CITATIONS'] = len(passed.get('citation', [])) > 0
-        self.new_protobuf_template['links']['REFERENCES'] = len(passed.get('reference', [])) > 0
+        self.master_protobuf['links']['CITATIONS'] = len(passed.get('citation', [])) > 0
+        self.master_protobuf['links']['REFERENCES'] = len(passed.get('reference', [])) > 0
+        self.master_protobuf['links']['METRICS'] = self.compute_metrics
         

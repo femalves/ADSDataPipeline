@@ -68,7 +68,7 @@ class Processor:
             }
         }
 
-        
+    # TODO: add master protobuf 
     def process_bibcodes(self, bibcodes):
         """send nonbib and metrics records to master for the passed bibcodes
         for each bibcode
@@ -95,7 +95,7 @@ class Processor:
         if not self.compute_CC: tasks.task_output_nonbib.delay(nonbib_protos)
         tasks.task_output_metrics.delay(metrics_protos)
 
-    
+    # TODO: Check what else can be added for master protobuf
     def _convert(self, passed):
         """Convert full nonbib dict to what is needed for nonbib protobuf.
         
@@ -210,8 +210,6 @@ class Processor:
         }
         for field in unused_fields:
             return_value.pop(field, None)
-            
-        return_value.update(self.new_protobuf_template)
         
         return return_value
 

@@ -210,7 +210,8 @@ class Processor:
         }
         for field in unused_fields:
             return_value.pop(field, None)
-        
+        return_value.update(self.master_protobuf)
+        return_value.pop('data_links_rows')
         return return_value
 
     def _add_citation_count_fields(self, return_value, passed):

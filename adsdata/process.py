@@ -429,7 +429,7 @@ class Processor:
         }
         
         for row in data_links_rows:
-            link_type = row['link_type']
+            link_type = row.get('link_type', '')
             
             # Skip if not in our mapping
             if link_type not in link_type_mapping:
@@ -439,22 +439,28 @@ class Processor:
             
             # Handle DATA and ESOURCE which have sub_type structure
             if mapped_type in ('DATA', 'ESOURCE'):
-                sub_type = row['link_sub_type']
+                sub_type = row.get('link_sub_type', '')
                 if sub_type not in self.master_protobuf['links'][mapped_type]:
                     self.master_protobuf['links'][mapped_type][sub_type] = {
                         'url': [],
                         'title': [],
                         'count': 0
                     }
-                self.master_protobuf['links'][mapped_type][sub_type]['url'].extend(row['url'])
-                self.master_protobuf['links'][mapped_type][sub_type]['title'].extend(row['title'])
-                self.master_protobuf['links'][mapped_type][sub_type]['count'] = row['item_count']
+                if 'url' in row:
+                    self.master_protobuf['links'][mapped_type][sub_type]['url'].extend(row['url'])
+                if 'title' in row:
+                    self.master_protobuf['links'][mapped_type][sub_type]['title'].extend(row['title'])
+                if 'item_count' in row:
+                    self.master_protobuf['links'][mapped_type][sub_type]['count'] = row['item_count']
             
             # Handle other link types with direct structure
             else:
-                self.master_protobuf['links'][mapped_type]['url'].extend(row['url'])
-                self.master_protobuf['links'][mapped_type]['title'].extend(row['title'])
-                self.master_protobuf['links'][mapped_type]['count'] = row['item_count']
+                if 'url' in row:
+                    self.master_protobuf['links'][mapped_type]['url'].extend(row['url'])
+                if 'title' in row:
+                    self.master_protobuf['links'][mapped_type]['title'].extend(row['title'])
+                if 'item_count' in row:
+                    self.master_protobuf['links'][mapped_type]['count'] = row['item_count']
         
 
     def _populate_link_flags(self, passed):

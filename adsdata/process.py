@@ -61,14 +61,13 @@ class Processor:
                 "CITATIONS": False,
                 "GRAPHICS": False,#MP
                 "METRICS": False,
-                "OPENURL": False, #MP
+                "OPENURL": True, 
                 "REFERENCES": False,
                 "TOC": False,
-                "COREAD": False #MP
+                "COREAD": True 
             }
         }
 
-    # TODO: add master protobuf 
     def process_bibcodes(self, bibcodes):
         """send nonbib and metrics records to master for the passed bibcodes
         for each bibcode

@@ -97,10 +97,10 @@ class TestMemoryCache(unittest.TestCase):
                                        'CITATIONS': False, 
                                        'GRAPHICS': False, 
                                        'METRICS': False, 
-                                       'OPENURL': False, 
+                                       'OPENURL': True, 
                                        'REFERENCES': False, 
                                        'TOC': True, 
-                                       'COREAD': False}}
+                                       'COREAD': True}}
             self.assertEqual(a, n)
             self._validate_nonbib_structure(n)
 
@@ -128,10 +128,10 @@ class TestMemoryCache(unittest.TestCase):
                                                     'CITATIONS': True, 
                                                     'GRAPHICS': False, 
                                                     'METRICS': False, 
-                                                    'OPENURL': False, 
+                                                    'OPENURL': True, 
                                                     'REFERENCES': False, 
                                                     'TOC': False, 
-                                                    'COREAD': False}}
+                                                    'COREAD': True}}
         
             v_boost = v.pop('boost')
             a_boost = a.pop('boost')

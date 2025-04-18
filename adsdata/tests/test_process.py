@@ -97,10 +97,10 @@ class TestMemoryCache(unittest.TestCase):
                                        'CITATIONS': False, 
                                        'GRAPHICS': False, 
                                        'METRICS': False, 
-                                       'OPENURL': True, 
+                                       'OPENURL': False, 
                                        'REFERENCES': False, 
-                                       'TOC': True, 
-                                       'COREAD': True}}
+                                       'TOC': False, 
+                                       'COREAD': False}}
             self.assertEqual(a, n)
             self._validate_nonbib_structure(n)
 
@@ -125,13 +125,13 @@ class TestMemoryCache(unittest.TestCase):
                                                     'INSPIRE': {'url': ['http://inspirehep.net/search?p=find+j+MNRAA,354,L31'], 'title': [''], 'count': 0}, 'LIBRARYCATALOG': {'url': [], 'title': [], 'count': 0}, 
                                                     'PRESENTATION': {'url': [], 'title': [], 'count': 0}, 
                                                     'ABSTRACT': False, 
-                                                    'CITATIONS': True, 
+                                                    'CITATIONS': False, 
                                                     'GRAPHICS': False, 
                                                     'METRICS': False, 
-                                                    'OPENURL': True, 
+                                                    'OPENURL': False, 
                                                     'REFERENCES': False, 
                                                     'TOC': False, 
-                                                    'COREAD': True}}
+                                                    'COREAD': False}}
         
             v_boost = v.pop('boost')
             a_boost = a.pop('boost')

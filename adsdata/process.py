@@ -61,10 +61,10 @@ class Processor:
                 "CITATIONS": False,
                 "GRAPHICS": False,#MP
                 "METRICS": False,
-                "OPENURL": True, 
+                "OPENURL": False, 
                 "REFERENCES": False,
                 "TOC": False,
-                "COREAD": True 
+                "COREAD": False 
             }
         }
 
@@ -135,9 +135,6 @@ class Processor:
         
             # Handle boolean fields and TOC
             if isinstance(default_value, bool):
-                if filetype == 'toc':
-                    self.master_protobuf['links']['TOC'] = value[filetype]
-                
                 return_value[filetype] = value[filetype]
                 value = value[filetype]
             
@@ -186,9 +183,6 @@ class Processor:
         
         # Populate the new protobuf structure with link data
         self._populate_new_links_structure(return_value['data_links_rows'])
-        
-        # Populate the boolean flags
-        self._populate_link_flags(passed)
         
         # Add computed fields
         for field_name, field_config in computed_fields.items():
@@ -461,13 +455,3 @@ class Processor:
                     self.master_protobuf['links'][mapped_type]['title'].extend(row['title'])
                 if 'item_count' in row:
                     self.master_protobuf['links'][mapped_type]['count'] = row['item_count']
-        
-
-    def _populate_link_flags(self, passed):
-        """Populate the boolean flags in the new protobuf links structure.
-        Sets CITATIONS, REFERENCES, and METRICS based on data availability."""
-    
-        self.master_protobuf['links']['CITATIONS'] = len(passed.get('citation', [])) > 0
-        self.master_protobuf['links']['REFERENCES'] = len(passed.get('reference', [])) > 0
-        self.master_protobuf['links']['METRICS'] = self.compute_metrics
-        

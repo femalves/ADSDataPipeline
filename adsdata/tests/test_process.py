@@ -71,13 +71,13 @@ class TestMemoryCache(unittest.TestCase):
             self.assertEqual(d['refereed'], {'refereed': False})
             self.assertEqual(d['planetary_feature'], ['Moon/Mare/Mare Imbrium/3678', 'Moon/Crater/Alder/171', 'Moon/Crater/Finsen/1959', 'Moon/Crater/Leibnitz/3335'])
 
-    # def test_protobuf(self):
-    #     """make sure protobuf are created without an exception"""
-    #     with Processor(compute_metrics=False) as processor, patch('adsputils.load_config', return_value={'INPUT_DATA_ROOT': './test/data1/config/'}):
-    #         d = processor._read_next_bibcode('1057wjlf.book.....C')
-    #         c = processor._convert(d)
-    #         nonbib = NonBibRecord(**c)
-    #         print('nonbib = {}'.format(nonbib))
+    def test_protobuf(self):
+        """make sure protobuf are created without an exception"""
+        with Processor(compute_metrics=False) as processor, patch('adsputils.load_config', return_value={'INPUT_DATA_ROOT': './test/data1/config/'}):
+            d = processor._read_next_bibcode('1057wjlf.book.....C')
+            c = processor._convert(d)
+            nonbib = NonBibRecord(**c)
+            print('nonbib = {}'.format(nonbib))
 
     def test_nonbib_record(self):
         self.maxDiff = None
@@ -99,7 +99,7 @@ class TestMemoryCache(unittest.TestCase):
                                        'METRICS': False, 
                                        'OPENURL': False, 
                                        'REFERENCES': False, 
-                                       'TOC': False, 
+                                       'TOC': True, 
                                        'COREAD': False}}
             self.assertEqual(a, n)
             self._validate_nonbib_structure(n)

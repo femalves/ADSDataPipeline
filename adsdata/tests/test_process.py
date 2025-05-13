@@ -99,7 +99,7 @@ class TestMemoryCache(unittest.TestCase):
                                        'METRICS': False, 
                                        'OPENURL': False, 
                                        'REFERENCES': False, 
-                                       'TOC': True, 
+                                       'TOC': False, 
                                        'COREAD': False}}
             self.assertEqual(a, n)
             self._validate_nonbib_structure(n)

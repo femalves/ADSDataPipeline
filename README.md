@@ -1,6 +1,7 @@
-
 Reads flat/classic files with (mostly) non-bibliographic data and
 sends nonbib and metrics protobufs to master pipeline.
+
+> **Note**: This project requires Python 3.9 or higher.
 
 # Overview
 There are ~30 input files.  Each row in every file begins with a bibcode. It is followed by a tab character and then

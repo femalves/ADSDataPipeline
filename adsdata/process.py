@@ -57,7 +57,7 @@ class Processor:
                     "title": [],
                     "count": 0
                 },
-                "ABSTRACT": False,#MP 
+                "ABSTRACT": True,
                 "CITATIONS": False,
                 "GRAPHICS": False,#MP
                 "METRICS": False,

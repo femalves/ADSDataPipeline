@@ -93,7 +93,7 @@ class TestMemoryCache(unittest.TestCase):
                                        'ADS_SCAN': {'url': ['http://articles.adsabs.harvard.edu/full/2003ASPC..295..361M'], 'title': [''], 'count': 0}}, 
                                        'ASSOCIATED': {'url': [], 'title': [], 'count': 0}, 'INSPIRE': {'url': [], 'title': [], 'count': 0}, 
                                        'LIBRARYCATALOG': {'url': [], 'title': [], 'count': 0}, 'PRESENTATION': {'url': [], 'title': [], 'count': 0}, 
-                                       'ABSTRACT': False, 
+                                       'ABSTRACT': True, 
                                        'CITATIONS': False, 
                                        'GRAPHICS': False, 
                                        'METRICS': False, 

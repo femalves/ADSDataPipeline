@@ -31,10 +31,10 @@ class Processor:
     def _get_master_nonbib_dict(self):
         # Template for the new protobuf structure
         return {
-            "identifier": [], #MP
+            "identifier": [], # Master Pipeline 
             "links": {
-                "ARXIV": [], #MP
-                "DOI": [],#MP
+                "ARXIV": [], # Master Pipeline
+                "DOI": [], # Master Pipeline
                 "DATA": {},
                 "ESOURCE": {},
                 "ASSOCIATED": {
@@ -57,14 +57,14 @@ class Processor:
                     "title": [],
                     "count": 0
                 },
-                "ABSTRACT": True,
-                "CITATIONS": False,
-                "GRAPHICS": False,#MP
-                "METRICS": False,
-                "OPENURL": False, 
-                "REFERENCES": False,
-                "TOC": False,
-                "COREAD": False 
+                "ABSTRACT": False,  # Master Pipeline
+                "CITATIONS": False, # Master Pipeline
+                "GRAPHICS": False,  # Master Pipeline
+                "METRICS": False,   # Master Pipeline
+                "OPENURL": False,   # Master Pipeline
+                "REFERENCES": False,# Master Pipeline
+                "TOC": False,       # Master Pipeline
+                "COREAD": False     # Master Pipeline
             }
         }
 
@@ -94,7 +94,6 @@ class Processor:
         if not self.compute_CC: tasks.task_output_nonbib.delay(nonbib_protos)
         tasks.task_output_metrics.delay(metrics_protos)
 
-    # TODO: Check what else can be added for master protobuf
     def _convert(self, passed):
         """Convert full nonbib dict to what is needed for nonbib protobuf.
         
@@ -180,9 +179,11 @@ class Processor:
         
         # Merge and process data links
         return_value['data_links_rows'] = self._merge_data_links(return_value['data_links_rows'])
+
+        master_template = self._get_master_nonbib_dict()
         
         # Populate the new protobuf structure with link data
-        self._populate_new_links_structure(return_value['data_links_rows'])
+        self._populate_new_links_structure(return_value['data_links_rows'], master_template)
         
         # Add computed fields
         for field_name, field_config in computed_fields.items():
@@ -203,7 +204,7 @@ class Processor:
         }
         for field in unused_fields:
             return_value.pop(field, None)
-        return_value.update(self.master_protobuf)
+        return_value.update(master_template)
         return_value.pop('data_links_rows')
         return return_value
 
@@ -414,7 +415,7 @@ class Processor:
         bibgroup_facet = sorted(list(set(bibgroup)))
         return {'bibgroup_facet': bibgroup_facet}
 
-    def _populate_new_links_structure(self, data_links_rows):
+    def _populate_new_links_structure(self, data_links_rows, master_template):
         """Populate the new protobuf links structure from data_links_rows.
         Maps the flat data_links_rows into the hierarchical links structure."""
         
@@ -440,24 +441,25 @@ class Processor:
             # Handle DATA and ESOURCE which have sub_type structure
             if mapped_type in ('DATA', 'ESOURCE'):
                 sub_type = row.get('link_sub_type', '')
-                if sub_type not in self.master_protobuf['links'][mapped_type]:
-                    self.master_protobuf['links'][mapped_type][sub_type] = {
+                if sub_type not in master_template['links'][mapped_type]:
+                    master_template['links'][mapped_type][sub_type] = {
                         'url': [],
                         'title': [],
                         'count': 0
                     }
                 if 'url' in row:
-                    self.master_protobuf['links'][mapped_type][sub_type]['url'].extend(row['url'])
+                    master_template['links'][mapped_type][sub_type]['url'].extend(row['url'])
                 if 'title' in row:
-                    self.master_protobuf['links'][mapped_type][sub_type]['title'].extend(row['title'])
+                    master_template['links'][mapped_type][sub_type]['title'].extend(row['title'])
                 if 'item_count' in row:
-                    self.master_protobuf['links'][mapped_type][sub_type]['count'] = row['item_count']
+                    master_template['links'][mapped_type][sub_type]['count'] = row['item_count']
             
             # Handle other link types with direct structure
             else:
                 if 'url' in row:
-                    self.master_protobuf['links'][mapped_type]['url'].extend(row['url'])
+                    master_template['links'][mapped_type]['url'].extend(row['url'])
                 if 'title' in row:
-                    self.master_protobuf['links'][mapped_type]['title'].extend(row['title'])
+                    master_template['links'][mapped_type]['title'].extend(row['title'])
                 if 'item_count' in row:
-                    self.master_protobuf['links'][mapped_type]['count'] = row['item_count']
+                    master_template['links'][mapped_type]['count'] = row['item_count']
+        return master_template

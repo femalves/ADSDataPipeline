@@ -1,4 +1,3 @@
-
 from adsdata import tasks
 from adsputils import load_config
 
@@ -82,6 +81,11 @@ class NonbibFileReader(object):
         # next, skip over lines in file until we:
         #   either find the passed bibcode or determine it isn't in the file
         skip_count = 0
+        # If you are wondering why this works: while the index files in the Classic
+        # Back Office are sorted case INsensitively, their sorting is converted to
+        # case sensitive when local copies are created in the pipeline container
+        # (see the script "copy_input_files.sh" located in the "root/app/bin" directory
+        # of the image for backoffice-data-pipeline in BeeHive).   
         while len(current_line) != 0 and self._get_bibcode(current_line) < bibcode:
             current_line = self._readline()
             skip_count = skip_count + 1
@@ -95,18 +99,21 @@ class NonbibFileReader(object):
 
         if isinstance(self.file_info['default_value'], bool):
             return self._convert_value(True)  # boolean files only hold bibcodes, all values are True
-
         # at this point, we have the first line with the bibcode in it
         # roll up possible other values on adjacent lines in file
         value = []
         if 'gpn/' in self.file_info['path'] or 'uat/' in self.file_info['path']:
             value.append("/".join(self._get_rest(current_line).split("\t")))
+        elif 'mention/' in self.file_info['path'] or 'credit/' in self.file_info['path']:
+            value.append(self._get_rest(current_line).split("\t")[0])
         else:
             value.append(self._get_rest(current_line))
         current_line = self._readline()
         while self.file_info.get('multiline', False) and (current_line not in [None, '']) and (bibcode == self._get_bibcode(current_line)):
             if 'gpn/' in self.file_info['path'] or 'uat/' in self.file_info['path']:
                 value.append("/".join(self._get_rest(current_line).split("\t")))
+            elif 'mention/' in self.file_info['path'] or 'credit/' in self.file_info['path']:
+                value.append(self._get_rest(current_line).split("\t")[0])
             else:
                 value.append(self._get_rest(current_line))
             current_line = self._readline()

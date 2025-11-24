@@ -6,6 +6,8 @@ config = load_config()
 # use dict to hold each input files and their properties and idiosycrasies
 
 data_files = OrderedDict()
+data_files['mention'] = {'path': 'links/mention/all.links', 'default_value': [], 'multiline': True}
+data_files['credit'] = {'path': 'links/credit/all.links', 'default_value': [], 'multiline': True}
 data_files['canonical'] = {'path': 'bibcodes.list.can', 'default_value': ''}
 data_files['author'] = {'path': 'links/facet_authors/all.links', 'default_value': []}
 data_files['bibgroup'] = {'path': 'links/bibgroups/all.links', 'default_value': [], 'multiline': True}
@@ -49,6 +51,12 @@ data_files['author_html'] = {'path': 'links/author_html/all.links', 'default_val
 data_files['author_pdf'] = {'path': 'links/author_pdf/all.links', 'default_value': {},
                             'extra_values': {'link_type': 'ESOURCE', 'link_sub_type': 'AUTHOR_PDF', 'property': ['AUTHOR_OPENACCESS', 'OPENACCESS']},
                             'subparts': ['url']}
+data_files['pmc_html'] = {'path': 'links/pmc_html/PMC.dat', 'default_value': {},
+                             'extra_values': {'link_type': 'ESOURCE', 'link_sub_type': 'PMC_HTML', 'property': ['PMC_OPENACCESS', 'OPENACCESS']},
+                             'subparts': ['url']}
+data_files['pmc_pdf'] = {'path': 'links/pmc_pdf/PMC.dat', 'default_value': {},
+                            'extra_values': {'link_type': 'ESOURCE', 'link_sub_type': 'PMC_PDF', 'property': ['PMC_OPENACCESS', 'OPENACCESS']},
+                            'subparts': ['url']}
 data_files['ads_scan'] = {'path': 'links/ads_scan/all.links', 'default_value': {},
                           'extra_values': {'link_type': 'ESOURCE', 'link_sub_type': 'ADS_SCAN', 'property': ['ADS_OPENACCESS', 'OPENACCESS']},
                           'subparts': [['url']]}
@@ -70,12 +78,13 @@ data_files['data_link'] = {'path': 'links/facet_datasources/datasources.links', 
                            'extra_values': {'link_type': 'DATA', 'property': ['DATA']}, 'multiline': True,
                            'subparts': ['link_sub_type', 'item_count', ['url'], ['title']]}
 data_files['planetary_feature'] = {'path': 'links/gpn/all.links', 'default_value': [], 'multiline': True}
-data_files['uat'] = {'path': 'links/uat/all.links', 'default_value': [], 'multiline': True}
+
+env_name = config.get('ENVIRONMENT', 'back-dev')
+data_files['uat'] = {'path': 'links/uat/uat.list.'+str(env_name), 'default_value': [], 'multiline': True}
 
 # file properties definitions required to generate metrics for CitationCapture records
 # use dict to hold each input files and their properties and idiosycrasies
 data_files_CC = OrderedDict()
-env_name = config.get('ENVIRONMENT', 'back-dev')
 data_files_CC['canonical'] = {'path': 'bibcodes_CC.list.can.'+str(env_name), 'default_value': ''}
 data_files_CC['author'] = {'path': 'links/facet_authors/facet_authors_CC.list.'+str(env_name), 'default_value': []}
 data_files_CC['citation'] = {'path': 'links/citation/citations_CC.list.'+str(env_name), 'default_value': [], 'multiline': True}

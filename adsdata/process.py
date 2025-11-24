@@ -207,11 +207,17 @@ class Processor:
         return_value.pop('data_links_rows')
         return return_value
 
-    def _add_citation_count_fields(self, return_value, passed):
-        author_count = len(passed.get('author', ()))
-        citation_count = len(passed.get('citation', ()))
+    def _add_citation_count_fields(self, return_value, original):
+        author_count = len(original.get('author', ()))
+        citation_count = len(return_value.get('citation', ()))
+        reference_count = len(return_value.get('reference', ()))
+        mention_count = len(return_value.get('mention', ()))
+        credit_count = len(return_value.get('credit', ()))
         return_value['citation_count'] = citation_count
+        return_value['reference_count'] = reference_count
         return_value['citation_count_norm'] = citation_count / float(max(author_count, 1))
+        return_value['mention_count'] = mention_count
+        return_value['credit_count'] = credit_count
 
     def _add_refereed_property(self, return_value):
         if'REFEREED' not in return_value['property']:

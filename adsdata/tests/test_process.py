@@ -85,7 +85,7 @@ class TestMemoryCache(unittest.TestCase):
             d = processor._read_next_bibcode('2003ASPC..295..361M')
             n = processor._convert(d)
             a = {'property': ['ADS_OPENACCESS', 'ARTICLE', 'ESOURCE', 'NOT REFEREED', 'OPENACCESS', 'TOC'], 'esource': ['ADS_PDF', 'ADS_SCAN'], 
-                 'bibcode': '2003ASPC..295..361M', 'bibgroup': ['Chandra Technical'], 'boost': 0.15, 'read_count': 4, 'norm_cites': 0, 'data': [], 
+                 'bibcode': '2003ASPC..295..361M', 'bibgroup': ['Chandra Technical'], 'boost': 0.15, 'reference_count': 0, 'credit_count': 0, 'mention': ['2020xxxx.soft.....X', '2021yyyy.soft.....Y'], 'mention_count': 2,'read_count': 4, 'norm_cites': 0, 'data': [], 
                  'total_link_counts': 0, 'citation_count': 0, 'citation_count_norm': 0.0, 
                  'bibgroup_facet': ['Chandra Technical'], 'identifier': [], 
                  'links': {'ARXIV': [], 'DOI': [], 'DATA': {}, 
@@ -106,7 +106,13 @@ class TestMemoryCache(unittest.TestCase):
 
             d = processor._read_next_bibcode('2004MNRAS.354L..31M')
             v = processor._convert(d)
-            a = {'property': ['ADS_OPENACCESS', 'ARTICLE', 'ASSOCIATED', 'DATA', 'EPRINT_OPENACCESS', 'ESOURCE', 'INSPIRE', 'OPENACCESS', 'PUB_OPENACCESS', 'REFEREED'], 
+            a = {'property': ['ADS_OPENACCESS', 'ARTICLE', 'ASSOCIATED', 'DATA', 'EPRINT_OPENACCESS', 'ESOURCE', 'INSPIRE', 'OPENACCESS', 'PUB_OPENACCESS', 'REFEREED'],
+                 "reference": ["2004PhRvL..92q6804N", "1989TSF...171....5T"],
+                 "reference_count": 2,
+                 "credit": ["2001CoPhC.136..319S"],
+                 "credit_count": 1,
+                 "mention": ["2020xxxx.soft.....X"],
+                 "mention_count": 1,
                  'esource': ['ADS_PDF', 'ADS_SCAN', 'EPRINT_HTML', 'EPRINT_PDF', 'PUB_HTML', 'PUB_PDF'], 
                  'bibcode': '2004MNRAS.354L..31M', 'boost': 0.44, 'read_count': 20, 'norm_cites': 10000, 
                  'simbad_objects': ['3253618 G'], 'data': ['CDS:1', 'NED:1953', 'SIMBAD:1', 'Vizier:1'], 
@@ -122,9 +128,9 @@ class TestMemoryCache(unittest.TestCase):
                                                                 'PUB_PDF': {'url': ['https://academic.oup.com/mnras/pdf-lookup/doi/10.1111/j.1365-2966.2004.08374.x'], 'title': [''], 'count': 0}, 
                                                                 'EPRINT_PDF': {'url': ['https://arxiv.org/pdf/astro-ph/0405472'], 'title': [''], 'count': 0}}, 
                                                     'ASSOCIATED': {'url': ['2004MNRAS.354L..31M', '2005yCat..73549031M'], 'title': ['Source Paper', 'Catalog Description'], 'count': 0}, 
-                                                    'INSPIRE': {'url': ['http://inspirehep.net/search?p=find+j+MNRAA,354,L31'], 'title': [''], 'count': 0}, 'LIBRARYCATALOG': {'url': [], 'title': [], 'count': 0}, 
-                                                    'PRESENTATION': {'url': [], 'title': [], 'count': 0}, 
-                                                    'ABSTRACT': False, 
+                                                    'INSPIRE': {'url': ['http://inspirehep.net/search?p=find+j+MNRAA,354,L31'], 'title': [''], 'count': 0}, 'LIBRARYCATALOG': {'url': [], 'title': [], 'count': 0},
+                                                    'PRESENTATION': {'url': [], 'title': [], 'count': 0},
+                                                    'ABSTRACT': True,
                                                     'CITATIONS': False, 
                                                     'GRAPHICS': False, 
                                                     'METRICS': False, 
@@ -132,7 +138,6 @@ class TestMemoryCache(unittest.TestCase):
                                                     'REFERENCES': False, 
                                                     'TOC': False, 
                                                     'COREAD': False}}
-        
             v_boost = v.pop('boost')
             a_boost = a.pop('boost')
             self.assertAlmostEqual(a_boost, v_boost)

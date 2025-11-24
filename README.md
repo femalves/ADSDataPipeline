@@ -2,6 +2,8 @@
 Reads flat/classic files with (mostly) non-bibliographic data and
 sends nonbib and metrics protobufs to master pipeline.
 
+Note: while in the Classic back office these files are sorted case insensitively, local copies will be created in the container for this pipeline that will be sorted case sensitively! This logic is not part of the code base in this Github repo, but in the repository that is used to create and deploy the containers.
+
 # Overview
 There are ~30 input files.  Each row in every file begins with a bibcode. It is followed by a tab character and then
 data from that bibcode.

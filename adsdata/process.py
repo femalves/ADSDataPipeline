@@ -206,6 +206,7 @@ class Processor:
             return_value.pop(field, None)
         return_value.update(master_template)
         return_value.pop('data_links_rows')
+        self.logger.debug('Processed nonbib data: {}'.format(return_value))
         return return_value
 
     def _add_citation_count_fields(self, return_value, original):
@@ -279,6 +280,7 @@ class Processor:
     def _convert_data_link(self, filetype, value):
         """convert one data link row"""
         
+        self.logger.debug('Converting data link: {}'.format(value))
         file_properties = self.data_dict[filetype]
 
         link_type = file_properties['extra_values']['link_type']
@@ -308,16 +310,18 @@ class Processor:
             link_data['title'] = value.get('title', [''])
             link_data['item_count'] = value.get('item_count', 0)
             
+            self.logger.debug('Link data before conversion: {}'.format(link_data))
             if isinstance(link_data['url'], str):
                 link_data['url'] = [link_data['url']]
             if isinstance(link_data['title'], str):
                 link_data['title'] = [link_data['title']]
-        
+            self.logger.debug('Link data after conversion: {}'.format(link_data))
         elif not isinstance(value, bool):
             self.logger.error(
                 f"Serious error in process.convert_data_link: unexpected type for value, filetype = {filetype}, "
                 f"value = {value}, type of value = {type(value)}"
             )
+        self.logger.debug('Converted data link: {}'.format(link_data))
         return link_data
 
     def _read_next_bibcode(self, bibcode):
@@ -418,6 +422,8 @@ class Processor:
     def _populate_new_links_structure(self, data_links_rows, master_template):
         """Populate the new protobuf links structure from data_links_rows.
         Maps the flat data_links_rows into the hierarchical links structure."""
+
+        self.logger.debug('Populating new links structure: {}'.format(data_links_rows))
         
         # Map for link types that need special handling
         link_type_mapping = {
@@ -462,4 +468,5 @@ class Processor:
                     master_template['links'][mapped_type]['title'].extend(row['title'])
                 if 'item_count' in row:
                     master_template['links'][mapped_type]['count'] = row['item_count']
+        self.logger.debug('Populated new links structure: {}'.format(master_template))
         return master_template
